@@ -2,19 +2,41 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
+import { DEMO_PROFILES, type DemoProfileId } from "@/lib/auth/demo-profiles";
+import { homeForRole } from "@/lib/routing";
 import { useSession } from "@/lib/session";
+
+const showDevLogin =
+  process.env.NEXT_PUBLIC_ALLOW_DEV_LOGIN === "true" ||
+  process.env.NODE_ENV !== "production";
+
+const oidcEnabled = process.env.NEXT_PUBLIC_OIDC_ENABLED === "true";
+const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { ready, signedIn, role, signIn } = useSession();
+  const { ready, signedIn, role, roles, signInDev, signInOidc } = useSession();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    if (signedIn && role) router.replace("/home");
-    else if (signedIn) router.replace("/role");
-  }, [ready, signedIn, role, router]);
+    if (signedIn && role) router.replace(homeForRole(role));
+    else if (signedIn && roles.length) router.replace("/role");
+  }, [ready, signedIn, role, roles, router]);
+
+  async function handleDev(profileId: DemoProfileId) {
+    setPending(true);
+    setError(null);
+    try {
+      await signInDev(profileId);
+    } catch {
+      setError("Не удалось выполнить вход.");
+      setPending(false);
+    }
+  }
 
   return (
     <div className="aiu-shell">
@@ -35,24 +57,8 @@ export default function LoginPage() {
                 Услуги, документы и общежитие — с понятным статусом на каждом
                 шаге.
               </p>
-              <ol className="mt-10 space-y-4 text-sm text-ink">
-                {[
-                  "Одна университетская учётная запись",
-                  "Заявки и документы под рукой",
-                  "История каждого решения",
-                ].map((item, index) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-white">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ol>
             </div>
-            <p className="mt-12 text-sm text-muted">
-              Язык интерфейса: русский · Демонстрационный прототип
-            </p>
+            <p className="mt-12 text-sm text-muted">Язык интерфейса: русский</p>
           </div>
         </section>
 
@@ -66,34 +72,80 @@ export default function LoginPage() {
             </h2>
             <p className="mt-3 text-sm text-muted">
               Пароль вводится только на странице университетского провайдера
-              входа.
+              входа. Сессия хранится в защищённой httpOnly cookie.
             </p>
 
-            <button
-              type="button"
-              className="aiu-btn-primary mt-8 w-full"
-              onClick={() => {
-                signIn();
-                router.push("/role");
-              }}
-            >
-              Войти через университетский SSO
-            </button>
+            {oidcEnabled ? (
+              <button
+                type="button"
+                className="aiu-btn-primary mt-8 w-full"
+                disabled={pending}
+                onClick={() => {
+                  setPending(true);
+                  void signInOidc();
+                }}
+              >
+                Войти через университетский SSO
+              </button>
+            ) : null}
+
+            {showDevLogin ? (
+              <div className="mt-6 space-y-3">
+                {!oidcEnabled ? (
+                  <p className="text-sm text-muted">
+                    OIDC не настроен. Доступен серверный dev-вход с фиксированными
+                    профилями (роли выдаёт сервер).
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">Dev-профили для локальной проверки</p>
+                )}
+                <div className="grid gap-2">
+                  {(Object.keys(DEMO_PROFILES) as DemoProfileId[]).map((id) => {
+                    const profile = DEMO_PROFILES[id];
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        disabled={pending}
+                        className="aiu-btn-secondary w-full justify-between"
+                        onClick={() => void handleDev(id)}
+                      >
+                        <span>{profile.label}</span>
+                        <span className="text-xs text-muted">
+                          {profile.roles.join(", ")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {!oidcEnabled && !showDevLogin ? (
+              <p className="mt-6 text-sm text-red-700">
+                Вход недоступен: настройте AUTH_OIDC_* или AUTH_ALLOW_DEV_LOGIN.
+              </p>
+            ) : null}
+
+            {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
 
             <div className="mt-5 flex items-start gap-3 rounded-card border border-line bg-canvas/80 p-4 text-sm text-muted">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
               <p>
-                Защищённый вход. В этом прототипе SSO имитируется и не требует
-                реальных учётных данных.
+                Защищённый вход. Права определяются ролями, выданными
+                провайдером или бэкендом — не выбором в браузере.
               </p>
             </div>
+
+            {demoMode ? (
+              <p className="mt-4 text-xs text-muted">
+                Сейчас включён NEXT_PUBLIC_DEMO_MODE.
+              </p>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-4 text-sm">
               <Link href="/help" className="font-medium text-brand hover:underline">
                 Не получается войти?
-              </Link>
-              <Link href="/atlas" className="font-medium text-muted hover:text-brand">
-                Открыть атлас экранов
               </Link>
             </div>
           </div>

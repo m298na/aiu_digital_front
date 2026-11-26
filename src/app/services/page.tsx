@@ -1,26 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/ui";
-import { services } from "@/lib/demo-data";
+import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui";
+import { getServices } from "@/lib/api/client";
+import type { ServiceItem } from "@/lib/data/store";
 import { useSession } from "@/lib/session";
 
 export default function ServicesPage() {
   const { role } = useSession();
   const [query, setQuery] = useState("");
+  const [unit, setUnit] = useState("all");
+  const [items, setItems] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return services.filter((service) => {
-      const matchesRole = role ? service.audience.includes(role) : true;
-      const matchesQuery = `${service.title} ${service.description}`
-        .toLowerCase()
-        .includes(query.toLowerCase());
-      return matchesRole && matchesQuery;
-    });
-  }, [query, role]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getServices({ q: query, role: role ?? undefined })
+      .then((data) => {
+        if (cancelled) return;
+        let next = data.items;
+        if (unit !== "all") {
+          next = next.filter((service) => service.code.toLowerCase() === unit);
+        }
+        setItems(next);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query, role, unit]);
 
   return (
     <AppShell area="Услуги">
@@ -35,26 +54,38 @@ export default function ServicesPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             className="aiu-input pl-10"
+            name="q"
             placeholder="Поиск по названию услуги"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <select className="aiu-input sm:max-w-56" defaultValue="all">
+        <select
+          className="aiu-input sm:max-w-56"
+          name="unit"
+          value={unit}
+          onChange={(event) => setUnit(event.target.value)}
+        >
           <option value="all">Все подразделения</option>
           <option value="hr">HR</option>
           <option value="dor">Общежитие</option>
           <option value="it">IT</option>
+          <option value="help">HELP</option>
         </select>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? <LoadingBlock /> : null}
+      {error ? <ErrorBlock message={error} /> : null}
+
+      {!loading && !error && items.length === 0 ? (
         <div className="aiu-panel p-8 text-sm text-muted">
           По запросу ничего не найдено. Попробуйте другое название.
         </div>
-      ) : (
+      ) : null}
+
+      {!loading && !error && items.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((service, index) => (
+          {items.map((service, index) => (
             <Link
               key={service.id}
               href={service.href}
@@ -74,7 +105,7 @@ export default function ServicesPage() {
             </Link>
           ))}
         </div>
-      )}
+      ) : null}
     </AppShell>
   );
 }

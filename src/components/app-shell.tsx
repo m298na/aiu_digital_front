@@ -9,7 +9,6 @@ import {
   Building2,
   ClipboardList,
   GraduationCap,
-  HelpCircle,
   Home,
   LayoutGrid,
   LogOut,
@@ -18,10 +17,11 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { demoUser, roleLabels, type Role } from "@/lib/demo-data";
-import { useSession } from "@/lib/session";
-import { cn } from "@/lib/utils";
 import { DemoBanner } from "@/components/ui";
+import { profileDefaults } from "@/lib/data/store";
+import { useSession } from "@/lib/session";
+import { roleLabels, type Role } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type NavItem = {
   href: string;
@@ -32,12 +32,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/home", label: "Главная", icon: Home, roles: ["student", "employee"] },
-  {
-    href: "/services",
-    label: "Услуги",
-    icon: LayoutGrid,
-    roles: ["student", "employee"],
-  },
+  { href: "/services", label: "Услуги", icon: LayoutGrid, roles: ["student", "employee"] },
   {
     href: "/applications",
     label: "Мои заявки",
@@ -56,66 +51,26 @@ const navItems: NavItem[] = [
     icon: Bell,
     roles: ["student", "employee", "specialist", "operator", "admin"],
   },
-  {
-    href: "/hr/queue",
-    label: "Рабочая очередь",
-    icon: ClipboardList,
-    roles: ["specialist"],
-  },
-  {
-    href: "/hr/employees",
-    label: "Сотрудники",
-    icon: Users,
-    roles: ["specialist"],
-  },
-  {
-    href: "/operator",
-    label: "Обзор",
-    icon: Home,
-    roles: ["operator"],
-  },
-  {
-    href: "/operator/queue",
-    label: "Очередь",
-    icon: ClipboardList,
-    roles: ["operator"],
-  },
-  {
-    href: "/operator/rooms",
-    label: "Фонд мест",
-    icon: Building2,
-    roles: ["operator"],
-  },
-  {
-    href: "/operator/placements",
-    label: "Размещения",
-    icon: Users,
-    roles: ["operator"],
-  },
+  { href: "/hr/queue", label: "Рабочая очередь", icon: ClipboardList, roles: ["specialist"] },
+  { href: "/hr/employees", label: "Сотрудники", icon: Users, roles: ["specialist"] },
+  { href: "/operator", label: "Обзор", icon: Home, roles: ["operator"] },
+  { href: "/operator/queue", label: "Очередь", icon: ClipboardList, roles: ["operator"] },
+  { href: "/operator/rooms", label: "Фонд мест", icon: Building2, roles: ["operator"] },
+  { href: "/operator/placements", label: "Размещения", icon: Users, roles: ["operator"] },
   {
     href: "/science",
     label: "Научный реестр",
     icon: BookOpen,
     roles: ["admin", "specialist"],
   },
-  {
-    href: "/students",
-    label: "Студенты",
-    icon: GraduationCap,
-    roles: ["admin"],
-  },
+  { href: "/students", label: "Студенты", icon: GraduationCap, roles: ["admin"] },
   {
     href: "/analytics",
     label: "Аналитика",
     icon: LayoutGrid,
     roles: ["admin", "operator", "specialist"],
   },
-  {
-    href: "/admin",
-    label: "Администрирование",
-    icon: Settings,
-    roles: ["admin"],
-  },
+  { href: "/admin", label: "Администрирование", icon: Settings, roles: ["admin"] },
   {
     href: "/atlas",
     label: "Атлас экранов",
@@ -131,7 +86,7 @@ export function AppShell({
   children: React.ReactNode;
   area?: string;
 }) {
-  const { ready, signedIn, role, signOut } = useSession();
+  const { ready, signedIn, role, user, roles, signOut } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -155,16 +110,17 @@ export function AppShell({
   if (!ready || !signedIn || !role) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted">
-        Загружаем кабинет…
+        Проверяем сессию…
       </div>
     );
   }
 
+  const displayName = user?.name ?? profileDefaults.name;
   const subtitle =
     role === "student"
-      ? `${demoUser.program} · ${demoUser.course}`
+      ? `${profileDefaults.program} · ${profileDefaults.course}`
       : role === "employee"
-        ? demoUser.department
+        ? profileDefaults.department
         : roleLabels[role];
 
   return (
@@ -203,9 +159,7 @@ export function AppShell({
                   onClick={() => setOpen(false)}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
-                    active
-                      ? "bg-brand text-white"
-                      : "text-ink hover:bg-canvas",
+                    active ? "bg-brand text-white" : "text-ink hover:bg-canvas",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -256,21 +210,23 @@ export function AppShell({
                     AIU / {area}
                   </p>
                   <p className="text-sm font-medium text-ink">
-                    {roleLabels[role]} · {demoUser.name}
+                    {roleLabels[role]} · {displayName}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Link href="/role" className="aiu-btn-secondary hidden sm:inline-flex">
-                  Сменить роль
-                </Link>
+                {roles.length > 1 ? (
+                  <Link
+                    href="/role"
+                    className="aiu-btn-secondary hidden sm:inline-flex"
+                  >
+                    Сменить роль
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   className="aiu-btn-secondary"
-                  onClick={() => {
-                    signOut();
-                    router.push("/");
-                  }}
+                  onClick={() => void signOut()}
                 >
                   <LogOut className="h-4 w-4" />
                   <span className="hidden sm:inline">Выйти</span>

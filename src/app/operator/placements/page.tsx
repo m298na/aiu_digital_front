@@ -1,63 +1,76 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { DataTable, PageHeader, StatusBadge } from "@/components/ui";
-import { placements } from "@/lib/demo-data";
+import { useActionFeedback } from "@/components/action-toast";
+import {
+  DataTable,
+  ErrorBlock,
+  LoadingBlock,
+  PageHeader,
+  StatusBadge,
+} from "@/components/ui";
+import { getPlacements } from "@/lib/api/client";
+import type { placementsStore } from "@/lib/data/store";
+
+type Placement = (typeof placementsStore)[number];
 
 export default function PlacementsPage() {
+  const [items, setItems] = useState<Placement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { notify, Feedback } = useActionFeedback();
+
+  useEffect(() => {
+    let cancelled = false;
+    getPlacements()
+      .then((data) => {
+        if (!cancelled) {
+          setItems(data.items);
+          setError(null);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <AppShell area="Общежития">
+      <Feedback />
       <PageHeader
         eyebrow="Общежития / O08"
-        title="Размещения и брони"
-        description="Фактическое заселение и выезд фиксирует оператор."
+        title="Размещения"
+        description="Текущие брони и заселения."
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {["Все", "Ожидаемые заезды", "Брони истекают", "Проживают", "Архив"].map(
-          (tab, index) => (
+      {loading ? <LoadingBlock /> : null}
+      {error ? <ErrorBlock message={error} /> : null}
+      {!loading && !error ? (
+        <DataTable
+          columns={["Студент", "Место", "Период", "Статус", "Действие"]}
+          rows={items.map((item) => [
+            item.student,
+            item.place,
+            item.interval,
+            <StatusBadge key={`${item.student}-s`} status={item.status} />,
             <button
-              key={tab}
+              key={`${item.student}-a`}
               type="button"
-              className={index === 0 ? "aiu-btn-primary" : "aiu-btn-secondary"}
+              className="text-sm font-medium text-brand hover:underline"
+              onClick={() => notify(`Действие «${item.action}» поставлено в очередь.`)}
             >
-              {tab}
-            </button>
-          ),
-        )}
-      </div>
-
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            className="aiu-input pl-10"
-            placeholder="ID студента или номер комнаты"
-          />
-        </div>
-        <select className="aiu-input sm:max-w-40" defaultValue="1">
-          <option value="1">Корпус 1</option>
-        </select>
-      </div>
-
-      <DataTable
-        columns={["Студент", "Место", "Интервал", "Статус", "Действие"]}
-        rows={placements.map((item) => [
-          item.student,
-          item.place,
-          item.interval,
-          <StatusBadge key={`${item.student}-s`} status={item.status} />,
-          <button key={`${item.student}-a`} type="button" className="aiu-btn-secondary">
-            {item.action}
-          </button>,
-        ])}
-      />
-
-      <p className="mt-4 text-sm text-muted">
-        Просроченная бронь освобождается один раз. Дальнейшее действие по
-        заявлению определяется правилами кампании.
-      </p>
+              {item.action}
+            </button>,
+          ])}
+        />
+      ) : null}
     </AppShell>
   );
 }

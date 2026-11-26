@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   ApplicationStatus,
+  pluralizeRecords,
   statusLabels,
   statusStyles,
-} from "@/lib/demo-data";
+} from "@/lib/types";
+import { isDemoMode } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -93,10 +97,11 @@ export function EmptyState({
 }
 
 export function DemoBanner() {
+  if (!isDemoMode()) return null;
   return (
     <div className="mb-4 rounded-card border border-accent/40 bg-accent-soft px-4 py-3 text-sm text-ink">
-      AIU Digital University · Проект интерфейса v1.0 · Все сведения в макете
-      вымышлены
+      AIU Digital University · Демо-режим · Данные и SSO могут быть
+      демонстрационными
     </div>
   );
 }
@@ -148,8 +153,8 @@ export function DataTable({
         </table>
       </div>
       <div className="border-t border-line px-4 py-3 text-xs text-muted">
-        Показано {rows.length}{" "}
-        {rows.length === 1 ? "запись" : "записи"} · Демонстрационные данные
+        Показано {rows.length} {pluralizeRecords(rows.length)}
+        {isDemoMode() ? " · Демонстрационные данные" : null}
       </div>
     </div>
   );
@@ -159,16 +164,43 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
-    <label className="block">
+    <label className="block" htmlFor={htmlFor}>
       <span className="aiu-label">{label}</span>
       {children}
       {hint ? <span className="mt-1.5 block text-xs text-muted">{hint}</span> : null}
     </label>
+  );
+}
+
+export function LoadingBlock({ label = "Загружаем данные…" }: { label?: string }) {
+  return (
+    <div className="aiu-panel animate-pulse p-8 text-sm text-muted">{label}</div>
+  );
+}
+
+export function ErrorBlock({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="aiu-panel border-red-200 bg-red-50 p-6 text-sm text-red-800">
+      <p>{message}</p>
+      {onRetry ? (
+        <button type="button" className="aiu-btn-secondary mt-4" onClick={onRetry}>
+          Повторить
+        </button>
+      ) : null}
+    </div>
   );
 }

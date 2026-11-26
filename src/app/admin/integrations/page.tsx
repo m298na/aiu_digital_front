@@ -1,11 +1,15 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
+import { useActionFeedback } from "@/components/action-toast";
 import { DataTable, PageHeader } from "@/components/ui";
 
 export default function AdminIntegrationsPage() {
+  const { notify, Feedback } = useActionFeedback();
+
   return (
     <AppShell area="Администрирование">
+      <Feedback />
       <PageHeader
         eyebrow="Администрирование / A08"
         title="Интеграции и свежесть данных"
@@ -33,10 +37,18 @@ export default function AdminIntegrationsPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" className="aiu-btn-secondary">
+        <button
+          type="button"
+          className="aiu-btn-secondary"
+          onClick={() => notify("Загрузка файла откроет мастер импорта.")}
+        >
           Загрузить файл вручную
         </button>
-        <button type="button" className="aiu-btn-primary">
+        <button
+          type="button"
+          className="aiu-btn-primary"
+          onClick={() => notify("Паспорт обмена открыт в режиме просмотра.")}
+        >
           Паспорт обмена
         </button>
       </div>

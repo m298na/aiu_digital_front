@@ -2,17 +2,34 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { AppShell } from "@/components/app-shell";
+import { useActionFeedback } from "@/components/action-toast";
 import { Field, PageHeader } from "@/components/ui";
-import { demoUser } from "@/lib/demo-data";
+import { profileDefaults } from "@/lib/data/store";
+import {
+  hrCertificateSchema,
+  type HrCertificateValues,
+} from "@/lib/schemas/hr-certificate";
+import { useSession } from "@/lib/session";
 
 export default function Hr01ApplyPage() {
   const router = useRouter();
-  const [saved, setSaved] = useState(false);
+  const { user } = useSession();
+  const { notify, Feedback } = useActionFeedback();
+  const form = useForm<HrCertificateValues>({
+    resolver: zodResolver(hrCertificateSchema),
+    defaultValues: {
+      purpose: "specialist",
+      language: "ru",
+      recipient: "По месту требования",
+    },
+  });
 
   return (
     <AppShell area="Услуги">
+      <Feedback />
       <PageHeader
         eyebrow="Услуги / C03"
         title="Заявка на справку"
@@ -22,32 +39,55 @@ export default function Hr01ApplyPage() {
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <form
           className="aiu-panel space-y-4 p-6"
-          onSubmit={(event) => {
-            event.preventDefault();
+          onSubmit={form.handleSubmit(() => {
             router.push("/applications/HR-0048");
-          }}
+          })}
         >
           <h2 className="font-display text-2xl text-ink">Данные заявки</h2>
           <Field label="Заявитель">
-            <div className="aiu-readonly">{demoUser.name}</div>
+            <div className="aiu-readonly">
+              {user?.name ?? profileDefaults.name}
+            </div>
           </Field>
-          <Field label="Назначение">
-            <select className="aiu-input" defaultValue="specialist">
+          <Field label="Назначение" htmlFor="purpose">
+            <select
+              id="purpose"
+              className="aiu-input"
+              {...form.register("purpose")}
+            >
               <option value="specialist">
                 Специалист · Департамент цифровизации
               </option>
               <option value="teacher">Преподаватель · 0,25 ставки</option>
             </select>
+            {form.formState.errors.purpose ? (
+              <span className="mt-1.5 block text-xs text-red-700">
+                {form.formState.errors.purpose.message}
+              </span>
+            ) : null}
           </Field>
-          <Field label="Язык документа">
-            <select className="aiu-input" defaultValue="ru">
+          <Field label="Язык документа" htmlFor="language">
+            <select
+              id="language"
+              className="aiu-input"
+              {...form.register("language")}
+            >
               <option value="ru">Русский</option>
               <option value="kk">Қазақша</option>
               <option value="en">English</option>
             </select>
           </Field>
-          <Field label="Адресат">
-            <input className="aiu-input" defaultValue="По месту требования" />
+          <Field label="Адресат" htmlFor="recipient">
+            <input
+              id="recipient"
+              className="aiu-input"
+              {...form.register("recipient")}
+            />
+            {form.formState.errors.recipient ? (
+              <span className="mt-1.5 block text-xs text-red-700">
+                {form.formState.errors.recipient.message}
+              </span>
+            ) : null}
           </Field>
           <div className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             В справку войдут сведения по выбранному назначению.
@@ -59,14 +99,11 @@ export default function Hr01ApplyPage() {
             <button
               type="button"
               className="aiu-btn-secondary"
-              onClick={() => setSaved(true)}
+              onClick={() => notify("Черновик справки сохранён.")}
             >
               Сохранить черновик
             </button>
           </div>
-          {saved ? (
-            <p className="text-sm text-brand">Черновик сохранён в этом браузере.</p>
-          ) : null}
         </form>
 
         <aside className="aiu-panel space-y-4 p-6">
@@ -81,7 +118,10 @@ export default function Hr01ApplyPage() {
               <p className="mt-1 text-sm text-muted">{text}</p>
             </div>
           ))}
-          <Link href="/services/hr-01" className="text-sm font-medium text-brand hover:underline">
+          <Link
+            href="/services/hr-01"
+            className="text-sm font-medium text-brand hover:underline"
+          >
             Вернуться к паспорту услуги
           </Link>
         </aside>

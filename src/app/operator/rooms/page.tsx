@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { PageHeader } from "@/components/ui";
-import { rooms } from "@/lib/demo-data";
+import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui";
+import { getRooms } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
 const bedState = (room: string, bed: number) => {
@@ -22,6 +23,33 @@ const colors = {
 };
 
 export default function RoomsPage() {
+  const [query, setQuery] = useState("");
+  const [floor, setFloor] = useState("2");
+  const [rooms, setRooms] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getRooms({ q: query, floor })
+      .then((data) => {
+        if (!cancelled) {
+          setRooms(data.items);
+          setError(null);
+        }
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query, floor]);
+
   return (
     <AppShell area="Общежития">
       <PageHeader
@@ -33,11 +61,23 @@ export default function RoomsPage() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input className="aiu-input pl-10" placeholder="Номер комнаты" />
+          <input
+            className="aiu-input pl-10"
+            name="q"
+            placeholder="Номер комнаты"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
         </div>
-        <select className="aiu-input sm:max-w-40" defaultValue="2">
+        <select
+          className="aiu-input sm:max-w-40"
+          name="floor"
+          value={floor}
+          onChange={(event) => setFloor(event.target.value)}
+        >
           <option value="2">Этаж 2</option>
           <option value="1">Этаж 1</option>
+          <option value="all">Все этажи</option>
         </select>
       </div>
 
@@ -56,33 +96,44 @@ export default function RoomsPage() {
         </span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {rooms.map((room) => (
-          <div key={room} className="aiu-panel p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-xl text-ink">Комната {room}</h2>
-              <span className="text-xs text-muted">4 места</span>
+      {loading ? <LoadingBlock /> : null}
+      {error ? <ErrorBlock message={error} /> : null}
+
+      {!loading && !error && rooms.length === 0 ? (
+        <div className="aiu-panel p-8 text-sm text-muted">
+          Нет комнат по выбранному этажу или номеру.
+        </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {rooms.map((room) => (
+            <div key={room} className="aiu-panel p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-display text-xl text-ink">Комната {room}</h2>
+                <span className="text-xs text-muted">4 места</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((bed) => {
+                  const state = bedState(room, bed);
+                  return (
+                    <div
+                      key={bed}
+                      className={cn(
+                        "flex h-10 items-center justify-center rounded-lg text-sm font-medium",
+                        colors[state],
+                      )}
+                    >
+                      {bed}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-xs text-muted">Жилое помещение</p>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((bed) => {
-                const state = bedState(room, bed);
-                return (
-                  <div
-                    key={bed}
-                    className={cn(
-                      "flex h-10 items-center justify-center rounded-lg text-sm font-medium",
-                      colors[state],
-                    )}
-                  >
-                    {bed}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-xs text-muted">Жилое помещение</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : null}
     </AppShell>
   );
 }

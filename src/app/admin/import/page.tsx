@@ -1,11 +1,15 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
+import { useActionFeedback } from "@/components/action-toast";
 import { DataTable, PageHeader, StatCard } from "@/components/ui";
 
 export default function AdminImportPage() {
+  const { notify, Feedback } = useActionFeedback();
+
   return (
     <AppShell area="Администрирование">
+      <Feedback />
       <PageHeader
         eyebrow="Администрирование / A09–A10"
         title="Импорт данных из файла"
@@ -44,10 +48,18 @@ export default function AdminImportPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" className="aiu-btn-primary">
+        <button
+          type="button"
+          className="aiu-btn-primary"
+          onClick={() => notify("Импорт проверен. Применение отправлено в очередь.")}
+        >
           Проверить и применить
         </button>
-        <button type="button" className="aiu-btn-secondary">
+        <button
+          type="button"
+          className="aiu-btn-secondary"
+          onClick={() => notify("Отчёт ошибок подготовлен к скачиванию.")}
+        >
           Скачать отчёт ошибок
         </button>
       </div>

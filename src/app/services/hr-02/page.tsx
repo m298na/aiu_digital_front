@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Field, PageHeader } from "@/components/ui";
-import { demoUser } from "@/lib/demo-data";
+import { profileDefaults } from "@/lib/data/store";
+import { useSession } from "@/lib/session";
 
 export default function Hr02Page() {
   const router = useRouter();
+  const { user } = useSession();
 
   return (
     <AppShell area="Услуги">
@@ -23,10 +25,10 @@ export default function Hr02Page() {
         }}
       >
         <Field label="Заявитель">
-          <div className="aiu-readonly">{demoUser.name}</div>
+          <div className="aiu-readonly">{user?.name ?? profileDefaults.name}</div>
         </Field>
-        <Field label="Поле для исправления">
-          <select className="aiu-input" defaultValue="phone">
+        <Field label="Поле для исправления" htmlFor="field">
+          <select id="field" name="field" className="aiu-input" defaultValue="phone" required>
             <option value="phone">Контактный телефон</option>
             <option value="email">Личная почта</option>
           </select>
@@ -34,8 +36,14 @@ export default function Hr02Page() {
         <Field label="Текущее значение">
           <div className="aiu-readonly">Не указан</div>
         </Field>
-        <Field label="Новое значение">
-          <input className="aiu-input" defaultValue="+7 (000) 000-00-00" />
+        <Field label="Новое значение" htmlFor="newValue">
+          <input
+            id="newValue"
+            name="newValue"
+            className="aiu-input"
+            defaultValue="+7 (000) 000-00-00"
+            required
+          />
         </Field>
         <Field label="Основание">
           <textarea

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/ui";
-import { atlasScreens } from "@/lib/demo-data";
+import { isDemoMode } from "@/lib/config";
+import { atlasScreens } from "@/lib/data/store";
 import { useSession } from "@/lib/session";
 
 function AtlasGrid() {
@@ -29,12 +30,17 @@ function AtlasGrid() {
 
 export default function AtlasPage() {
   const { signedIn, role } = useSession();
+  const demo = isDemoMode();
 
   const header = (
     <PageHeader
       eyebrow="Screen Atlas"
       title="Каталог экранов AIU Digital"
-      description="Интерактивный срез Screen Atlas: вход, роли, кабинет заявителя, HR, общежитие, оператор и администрирование. Все данные демонстрационные."
+      description={
+        demo
+          ? "Интерактивный срез Screen Atlas: вход, роли, кабинет заявителя, HR, общежитие, оператор и администрирование. Включён демо-режим."
+          : "Каталог экранов платформы: вход, роли, кабинет заявителя, HR, общежитие, оператор и администрирование."
+      }
     />
   );
 

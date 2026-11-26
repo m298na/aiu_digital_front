@@ -15,12 +15,12 @@ export default function DormitoryPage() {
 
       <div className="aiu-panel mb-4 overflow-hidden bg-gradient-to-br from-brand to-brand-highlight p-6 text-white">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge status="in_review" />
+          <StatusBadge status="approved" />
           <span className="text-sm text-white/80">Заявление DU-0021</span>
         </div>
-        <h2 className="mt-4 font-display text-3xl">Заявление на проверке</h2>
+        <h2 className="mt-4 font-display text-3xl">Заявление одобрено</h2>
         <p className="mt-2 max-w-xl text-sm text-white/85">
-          Следите за уведомлениями. Если понадобятся исправления, мы сообщим.
+          Документы проверены. Ожидайте назначения места по правилам кампании.
         </p>
         <Link
           href="/applications/DU-0021"

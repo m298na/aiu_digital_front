@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
-import { SessionProvider } from "@/lib/session";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { isDemoMode } from "@/lib/config";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,8 +17,9 @@ const display = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: "AIU Digital University",
-  description:
-    "Интерактивный прототип единой платформы университетских услуг Astana International University по Screen Atlas.",
+  description: isDemoMode()
+    ? "AIU Digital University — интерфейс университетских услуг (демо-режим)."
+    : "Единая платформа университетских услуг Astana International University.",
 };
 
 export default function RootLayout({
@@ -28,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${inter.variable} ${display.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

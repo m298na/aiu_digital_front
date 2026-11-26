@@ -1,11 +1,15 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
+import { useActionFeedback } from "@/components/action-toast";
 import { DataTable, PageHeader } from "@/components/ui";
 
 export default function AdminCalendarPage() {
+  const { notify, Feedback } = useActionFeedback();
+
   return (
     <AppShell area="Администрирование">
+      <Feedback />
       <PageHeader
         eyebrow="Администрирование / A07"
         title="Рабочий календарь и сроки"
@@ -32,7 +36,11 @@ export default function AdminCalendarPage() {
         ]}
       />
 
-      <button type="button" className="aiu-btn-primary mt-4">
+      <button
+        type="button"
+        className="aiu-btn-primary mt-4"
+        onClick={() => notify("Версия календаря сохранена.")}
+      >
         Сохранить версию календаря
       </button>
     </AppShell>
